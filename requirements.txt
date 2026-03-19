@@ -1,4 +1,4 @@
 streamlit==1.32.2
 requests
-ddgs>=9.8.0
-duckduckgo-search
+beautifulsoup4
+duckduckgo-search==5.3.1

@@ -17,21 +17,36 @@ def search_models(q):
         search_query = f"{q} 3d model site:thingiverse.com OR site:printables.com OR site:cults3d.com"
         
         results = []
-        # ddgs.images returns dictionaries with 'title', 'image', 'url', 'source'
-        images = ddgs.images(search_query, max_results=24)
+        seen_links = set()
+        
+        # Request more than we need to account for duplicates and filtering
+        images = ddgs.images(search_query, max_results=50)
         
         for img in images:
-            # We only want results that link to actual models, not user profiles or tag pages
             url = img.get('url', '')
-            if '/user/' in url or '/tag/' in url:
+            # Filter out user profiles, tag pages, or non-model pages
+            if '/user/' in url or '/tag/' in url or not url:
                 continue
                 
+            # Prevent duplicates
+            if url in seen_links:
+                continue
+                
+            seen_links.add(url)
+                
+            # Clean up the title a bit (remove site suffixes and markdown brackets)
+            title = img.get('title', '3D Model').split('・')[0][:60]
+            title = title.replace('[', '').replace(']', '') + ("..." if len(title) == 60 else "")
+            
             results.append({
-                'title': img.get('title', '3D Model').split('・')[0][:60] + "...",
+                'title': title,
                 'link': url,
                 'image': img.get('image')
             })
             
+            if len(results) >= 24:
+                break
+                
         return results
     except Exception as e:
         st.error(f"Search API error: {e}")
@@ -45,18 +60,18 @@ if st.button("Search") or query:
             if not models:
                 st.warning("No models found or search engine rate limit reached. Try a different search.")
             else:
-                st.success(f"Found {len(models)} models!")
+                st.success(f"Found {len(models)} unique models!")
                 
                 cols = st.columns(4)
                 for idx, model in enumerate(models):
                     with cols[idx % 4]:
                         try:
+                            # Added a generic fallback in case the image fails to load
                             st.image(model['image'], use_container_width=True)
-                        except:
+                        except Exception:
                             st.write("*(Image unavailable)*")
                         
-                        safe_title = model['title'].replace('[', '').replace(']', '')
-                        st.markdown(f"**[{safe_title}]({model['link']})**")
+                        st.markdown(f"**[{model['title']}]({model['link']})**")
                         st.markdown("---")
     else:
         st.info("Please enter a search query above.")

@@ -2,8 +2,6 @@ import streamlit as st
 import time
 from urllib.parse import urlparse
 import json
-import urllib.request
-import re
 
 # --- PAGE CONFIG & CSS ---
 st.set_page_config(page_title="PrintSeeker | 3D Models", page_icon="🧊", layout="wide", initial_sidebar_state="expanded")
@@ -63,7 +61,7 @@ with st.sidebar:
     max_results = st.slider("Max Results", min_value=12, max_value=60, value=24, step=12)
     
     st.divider()
-    st.caption("Using lightweight web search to bypass strict Cloudflare blocks instantly.")
+    st.caption("Powered by DuckDuckGo Search API to prevent rate-limiting while providing high-quality meta-search.")
 
 # --- HELPERS ---
 def get_site_badge(url):
@@ -119,47 +117,8 @@ def search_models(q, sites_list, max_res):
                 
         return results
     except Exception as e:
-        # Fallback to duckduckgo_search v5 compatible interface if v6 fails
-        try:
-             from duckduckgo_search import ddg_images
-             site_query = " OR ".join([f"site:{site}" for site in sites_list])
-             search_query = f"{q} 3d model {site_query}"
-             
-             results = []
-             seen_links = set()
-             
-             images = ddg_images(search_query, max_results=max_res * 2)
-             
-             if not images:
-                return []
-                
-             for img in images:
-                 url = img.get('url', '')
-                 if '/user/' in url or '/tag/' in url or '/search/' in url or not url:
-                     continue
-                     
-                 if url in seen_links:
-                     continue
-                 seen_links.add(url)
-                     
-                 raw_title = img.get('title', '3D Model')
-                 clean_title = raw_title.split('・')[0].split('|')[0].split('-')[0].strip()
-                 clean_title = clean_title.replace('[', '').replace(']', '')
-                     
-                 results.append({
-                     'title': clean_title,
-                     'link': url,
-                     'image': img.get('image'),
-                     'source': get_site_badge(url)
-                 })
-                 
-                 if len(results) >= max_res:
-                     break
-                     
-             return results
-        except Exception as fallback_e:
-             st.error(f"Search API error: {fallback_e}")
-             return []
+        st.error(f"Search API error: {e}")
+        return []
 
 # --- MAIN UI ---
 st.title("Find your next 3D print 🚀")
